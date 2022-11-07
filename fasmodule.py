@@ -9,21 +9,24 @@ from torch.utils.data import dataloader
 from pytorch_lightning.core.lightning import LightningModule
 import timm
 from utils.loss import *
+from models.models import *
 from torchmetrics import Accuracy
 
 
 class FasModule(LightningModule):
     def __init__(self, main_opt, val_opt=None) -> None:
+        super(FasModule, self).__init__()
         if val_opt is None:
             self.test_opt = main_opt
             self.save_hyperparameters(vars(main_opt))
-            self.net = timm.create_model('resnet18')
+            self.net = timm.create_model(
+                'resnet18', num_classes=2, pretrained=True)
             return
 
         self.train_opt = main_opt
         self.save_hyperparameters(vars(main_opt))
 
-        self.net = timm.create_model('resnet18')
+        self.net = fasmodel('resnet34', num_classes=2)
         self.out_weights = [1]
 
         self.criterion = []
