@@ -30,7 +30,7 @@ import torch.utils.data as data
 import csv
 
 # Folder in which all videos lie in a specific structure
-root = os.path.join(os.getcwd(), 'face/public_test/videos')
+root = os.path.join(os.getcwd(), 'zaloai/public_test/videos')
 # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
 annotation_file = os.path.join(root.replace('videos', ''), 'annotations.txt')
 
@@ -80,7 +80,7 @@ def run_test(detector_class, image_iter):
     for i, sample in enumerate(dataset):
         time_before = time.time()
         prob = detector.predict(sample[0])
-        output_probs = float(np.median(prob[:, 0]))
+        output_probs = 1 if float(np.mean(prob[:, 0])) > 0.5 else 0
         video_id = sample[2].rsplit('/', 1)[1]+'.mp4'
         result[video_id] = output_probs
         # if i == 5:

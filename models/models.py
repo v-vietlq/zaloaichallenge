@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import torchvision
-from aggregate.avg_pool import FastAvgPool2d, Aggregate
+from .aggregate.avg_pool import FastAvgPool2d, Aggregate
+from models.aggregate.transformer_agg import TAggregate
 import torch.nn.functional as F
 
 backbone_filters = {
@@ -18,7 +19,7 @@ backbone_filters = {
 
 
 class fasmodel(nn.Module):
-    def __init__(self, encoder_name='resnet18', num_classes=2):
+    def __init__(self, encoder_name='resnet18', num_classes=1):
         super(fasmodel, self).__init__()
 
         feature_extractor = getattr(
@@ -46,6 +47,8 @@ class fasmodel(nn.Module):
 
         self.fc = nn.Linear(self.feat_in[-1], num_classes)
         
+        self.agg =TAggregate(clip_length=4, embed_dim=self.feat_in[-1])
+        
 
     def forward(self, x):
         batch_size, time_steps, channels, height, width = x.size()
@@ -58,16 +61,18 @@ class fasmodel(nn.Module):
 
         o = self.global_pool_layer(fea)
         
-        o = o.view((-1, time_steps) + o.size()[1:])
-        o = o.mean(dim=1)
+        o = self.agg(o)
+        
         
 
         o = self.fc(o)
 
+        o = F.sigmoid(o)
+
         return o
 
 if __name__ == '__main__':
-    x = torch.rand(4,16,3,224,224)
+    x = torch.rand(32,4,3,224,224)
     m = fasmodel()
     y = m(x)
     print(y.shape)

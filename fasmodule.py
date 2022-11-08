@@ -13,6 +13,11 @@ from models.models import *
 from torchmetrics import Accuracy
 
 
+def calc_acc(pred, target):
+    equal = torch.mean(pred.eq(target).type(torch.FloatTensor))
+    return equal.item()
+
+
 class FasModule(LightningModule):
     def __init__(self, main_opt, val_opt=None) -> None:
         super(FasModule, self).__init__()
@@ -20,19 +25,19 @@ class FasModule(LightningModule):
             self.test_opt = main_opt
             self.save_hyperparameters(vars(main_opt))
             self.net = timm.create_model(
-                'resnet18', num_classes=2, pretrained=True)
+                'resnet18', num_classes=1, pretrained=True)
             return
 
         self.train_opt = main_opt
         self.save_hyperparameters(vars(main_opt))
 
-        self.net = fasmodel('resnet34', num_classes=2)
+        self.net = fasmodel('resnet34', num_classes=1)
         self.out_weights = [1]
 
         self.criterion = []
         for loss_name in self.train_opt.loss:
             if loss_name == "focal":
-                self.criterion += [(loss_name, FocalLossV2())]
+                self.criterion += [(loss_name, FocalLoss())]
 
         self.val_acc = Accuracy()
 
@@ -54,7 +59,7 @@ class FasModule(LightningModule):
 
             total_loss += loss
 
-            self.log('loss_' + loss_name, loss, on_step=True,
+            self.log('loss_' + loss_name, loss, on_step=False,
                      on_epoch=True, prog_bar=True, logger=True)
 
         return total_loss
@@ -65,17 +70,19 @@ class FasModule(LightningModule):
             outputs = self(image)
 
         if len(self.out_weights) == 1:
-            pred = outputs.argmax(1)
+            pred = F.sigmoid(outputs)
+            pred = (pred > 0.5).type(torch.FloatTensor)
+        label = label.type(torch.LongTensor)
 
-        acc = self.val_acc(pred, label)
-
-        self.log('val_acc', acc, on_step=False,
-                 on_epoch=True, prog_bar=True, sync_dist=True)
-
-        return acc
+        self.val_acc.update(pred.cpu(), label.cpu())
 
     def validation_epoch_end(self, outputs):
-        pass
+        val_acc = self.val_acc.compute()
+
+        self.log('val_acc', val_acc, on_step=False,
+                 on_epoch=True, prog_bar=True, sync_dist=True)
+        self.val_acc.reset()
+        return val_acc
 
     def configure_optimizers(self):
         # Create optimizer
