@@ -24,20 +24,19 @@ class FasModule(LightningModule):
         if val_opt is None:
             self.test_opt = main_opt
             self.save_hyperparameters(vars(main_opt))
-            self.net = timm.create_model(
-                'resnet18', num_classes=1, pretrained=True)
+            self.net = fasmodel(main_opt.backbone, num_classes=2)
             return
 
         self.train_opt = main_opt
         self.save_hyperparameters(vars(main_opt))
 
-        self.net = fasmodel('resnet34', num_classes=1)
+        self.net = fasmodel(main_opt.backbone, num_classes=2)
         self.out_weights = [1]
 
         self.criterion = []
         for loss_name in self.train_opt.loss:
             if loss_name == "focal":
-                self.criterion += [(loss_name, FocalLoss())]
+                self.criterion += [(loss_name, nn.CrossEntropyLoss())]
 
         self.val_acc = Accuracy()
 
@@ -70,8 +69,8 @@ class FasModule(LightningModule):
             outputs = self(image)
 
         if len(self.out_weights) == 1:
-            pred = F.sigmoid(outputs)
-            pred = (pred > 0.5).type(torch.FloatTensor)
+            # pred = F.sigmoid(outputs)
+            pred = F.softmax(outputs, dim=1).type(torch.FloatTensor)
         label = label.type(torch.LongTensor)
 
         self.val_acc.update(pred.cpu(), label.cpu())
@@ -93,6 +92,9 @@ class FasModule(LightningModule):
         elif self.train_opt.optimizer == "adam":
             optimizer = torch.optim.Adam(self.net.parameters(
             ), lr=self.train_opt.lr, weight_decay=self.train_opt.weight_decay)
+        elif self.train_opt.optimizer == 'adamw':
+            optimizer = torch.optim.AdamW(
+                self.net.parameters(), lr=self.train_opt.lr)
 
         # Create learning rate scheduler
         scheduler = None
@@ -105,4 +107,7 @@ class FasModule(LightningModule):
         elif self.train_opt.lr_policy == "multi_step":
             scheduler = torch.optim.lr_scheduler.MultiStepLR(
                 optimizer, milestones=self.train_opt.lr_milestones, gamma=self.train_opt.lr_gamma)
+        elif self.train_opt.lr_policy == 'onecycle':
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=self.train_opt.lr, steps_per_epoch=len(self.trainer._data_connector._train_dataloader_source.dataloader()), epochs=self.train_opt.max_epoch,
+                                                            pct_start=0.2)
         return [optimizer], [{'scheduler': scheduler, 'name': 'lr'}]

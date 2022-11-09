@@ -48,7 +48,7 @@ val_transform = T.Compose([
 dataset = VideoFrameDataset(
     root_path=root,
     annotationfile_path=annotation_file,
-    num_segments=8,
+    num_segments=4,
     frames_per_segment=1,
     imagefile_template='img_{:05d}.jpg',
     transform=val_transform,
@@ -80,9 +80,10 @@ def run_test(detector_class, image_iter):
     for i, sample in enumerate(dataset):
         time_before = time.time()
         prob = detector.predict(sample[0])
-        output_probs = 1 if float(np.mean(prob[:, 0])) > 0.5 else 0
+        output_probs = float(prob[:, 1])
         video_id = sample[2].rsplit('/', 1)[1]+'.mp4'
         result[video_id] = output_probs
+        # break
         # if i == 5:
         #     break
 

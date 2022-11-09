@@ -1,7 +1,6 @@
 import argparse
 
 
-
 class BaseOptions():
     def __init__(self):
         self.initialized = False
@@ -16,7 +15,7 @@ class BaseOptions():
         parser.add_argument('--dataset', type=str, default='roadlanemark',
                             help='chooses which dataset to load.')
         parser.add_argument('--num_labels', type=int, help='number of labels')
-        parser.add_argument('--model', type=str, default='unet_resnet34',
+        parser.add_argument('--backbone', type=str, default='resnet34',
                             help='choose the backbone for semantic segmentation')
         parser.add_argument('--pretrained', type=str,
                             help='pretrained model path (.ckpt or .pth)')
@@ -32,8 +31,6 @@ class BaseOptions():
                             help='root folder containing images for validation')
         parser.add_argument('--val_list', required=True,
                             help='.txt file containing validation image list')
-        parser.add_argument('--val_data_sign', required=True, nargs="+",
-                            type=str, help='list of data_type. e.g vistas bdd')
 
         parser.add_argument('--save_dir', type=str, default='./checkpoints',
                             help='where checkpoints and log are save. The final saved dir would be: <save_dir>/<name>/version_<0,1,2...>/')

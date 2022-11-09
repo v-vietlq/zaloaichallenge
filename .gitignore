@@ -1,3 +1,5 @@
 zaloai
-ckpt_iter.pth.tar
 face
+weights
+err.txt
+predict.csv

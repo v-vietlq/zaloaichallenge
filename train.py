@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # save checkpoint callback
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
-        filename='best-{epoch:02d}-{acc:.2f}',
+        filename='best-{epoch:02d}-{val_acc:.2f}',
         verbose=True,
         mode='max'
     )
@@ -65,11 +65,11 @@ if __name__ == '__main__':
                                     checkpoint_callback, lr_monitor]
                          )
 
-    # Folder in which all videos lie in a specific structure
-    train_root = os.path.join(os.getcwd(), 'zaloai/train/videos')
-    # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
-    train_annotation_file = os.path.join(
-        train_root.replace('videos', ''), 'train_annotations.txt')
+    # # Folder in which all videos lie in a specific structure
+    # train_root = os.path.join(os.getcwd(), 'zaloai/train/videos')
+    # # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
+    # train_annotation_file = os.path.join(
+    #     train_root.replace('videos', ''), 'train_annotations.txt')
 
     train_transform = T.Compose([
         # T.RandomResizedCrop((224, 224)),
@@ -82,19 +82,19 @@ if __name__ == '__main__':
     ])
 
     train_dataset = VideoFrameDataset(
-        root_path=train_root,
-        annotationfile_path=train_annotation_file,
-        num_segments=16,
+        root_path=train_opt.train_root,
+        annotationfile_path=train_opt.train_list,
+        num_segments=4,
         frames_per_segment=1,
         imagefile_template='img_{:05d}.jpg',
         transform=train_transform,
         test_mode=False
     )
 
-    val_root = os.path.join(os.getcwd(), 'zaloai/train/videos')
-    # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
-    val_annotation_file = os.path.join(
-        train_root.replace('videos', ''), 'val_annotations.txt')
+    # val_root = os.path.join(os.getcwd(), 'zaloai/train/videos')
+    # # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
+    # val_annotation_file = os.path.join(
+    #     train_root.replace('videos', ''), 'val_annotations.txt')
 
     val_transform = T.Compose([
         # T.RandomResizedCrop((224, 224)),
@@ -107,9 +107,9 @@ if __name__ == '__main__':
     ])
 
     val_dataset = VideoFrameDataset(
-        root_path=val_root,
-        annotationfile_path=val_annotation_file,
-        num_segments=16,
+        root_path=train_opt.val_root,
+        annotationfile_path=train_opt.val_list,
+        num_segments=4,
         frames_per_segment=1,
         imagefile_template='img_{:05d}.jpg',
         transform=val_transform,
@@ -117,8 +117,8 @@ if __name__ == '__main__':
     )
 
     train_loader = data.DataLoader(
-        train_dataset, batch_size=4, num_workers=4, shuffle=True)
+        train_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=True)
     val_loader = data.DataLoader(
-        train_dataset, batch_size=4, num_workers=4, shuffle=False)
+        val_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=False)
 
     trainer.fit(fas_module, train_loader, val_loader)

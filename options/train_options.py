@@ -11,11 +11,6 @@ class TrainOptions(BaseOptions):
             '--train_root', help='root folder containing images for training')
         parser.add_argument(
             '--train_list', help='.txt file containing training image list')
-        parser.add_argument('--train_data_sign', nargs="+",
-                            type=str, help='list of data_type: vistas bdd')
-
-        parser.add_argument('--num_val_images', type=int,
-                            help='number of images to evaluate after each epoch')
 
         # Augmentations
         parser.add_argument('--crop_width', type=int,

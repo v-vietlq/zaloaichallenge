@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torchvision
-from .aggregate.avg_pool import FastAvgPool2d, Aggregate
+from models.aggregate.avg_pool import FastAvgPool2d, Aggregate
 from models.aggregate.transformer_agg import TAggregate
 import torch.nn.functional as F
 
@@ -67,12 +67,12 @@ class fasmodel(nn.Module):
 
         o = self.fc(o)
 
-        o = F.sigmoid(o)
+        # o = F.sigmoid(o)
 
         return o
 
 if __name__ == '__main__':
-    x = torch.rand(32,4,3,224,224)
+    x = torch.rand(4,4,3,224,224)
     m = fasmodel()
     y = m(x)
     print(y.shape)
