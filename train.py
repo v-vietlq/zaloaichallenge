@@ -11,6 +11,7 @@ import os
 from fasmodule import FasModule
 from torchvision import transforms as T
 import torch.utils.data as data
+from randaugment import RandAugment
 
 
 if __name__ == '__main__':
@@ -72,11 +73,15 @@ if __name__ == '__main__':
     #     train_root.replace('videos', ''), 'train_annotations.txt')
 
     train_transform = T.Compose([
-        # T.RandomResizedCrop((224, 224)),
+        T.RandomResizedCrop((224, 224)),
         # T.RandomRotation(degrees=30.),
         # T.RandomPerspective(distortion_scale=0.4),
-        T.Resize((224, 224)),
+        # T.Resize((224, 224)),
+        T.RandomHorizontalFlip(p=0.5),
+        T.RandomVerticalFlip(p=0.5),
+        RandAugment(),
         T.ToTensor(),
+        T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
 
     ])
@@ -102,6 +107,7 @@ if __name__ == '__main__':
         # T.RandomPerspective(distortion_scale=0.4),
         T.Resize((224, 224)),
         T.ToTensor(),
+        T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
 
     ])

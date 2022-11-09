@@ -87,18 +87,18 @@ class FocalLossV2(nn.Module):
 
 
 class FocalLoss(nn.Module):
-    def __init__(self, alpha: Optional[Tensor] = 0.25,
-                 gamma: float = 2,
-                 reduction: str = 'mean',):
+    def __init__(self, alpha=0.25, gamma=2):
         super(FocalLoss, self).__init__()
-        self.alpha = alpha
+        self.weight = torch.Tensor([alpha, 1-alpha]).cuda()
+        self.nllLoss = nn.NLLLoss(weight=self.weight)
         self.gamma = gamma
-        self.reduction = reduction
 
-    def forward(self, x, y):
-        loss = torchvision.ops.sigmoid_focal_loss(
-            x, y, alpha=self.alpha, gamma=self.gamma, reduction=self.reduction)
-        return loss
+    def forward(self, input, target):
+        softmax = F.softmax(input, dim=1)
+        log_logits = torch.log(softmax)
+        fix_weights = (1 - softmax) ** self.gamma
+        logits = fix_weights * log_logits
+        return self.nllLoss(logits, target)
 
 
 class AsymmetricLossOptimized(nn.Module):

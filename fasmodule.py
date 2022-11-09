@@ -36,7 +36,7 @@ class FasModule(LightningModule):
         self.criterion = []
         for loss_name in self.train_opt.loss:
             if loss_name == "focal":
-                self.criterion += [(loss_name, nn.CrossEntropyLoss())]
+                self.criterion += [(loss_name, FocalLoss())]
 
         self.val_acc = Accuracy()
 
