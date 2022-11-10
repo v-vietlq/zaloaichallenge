@@ -4,3 +4,7 @@
 1239
 1305
 1548
+
+--------------------------------------------------
+* extract some fail cases
+ * retrain with additve margin sofmax loss

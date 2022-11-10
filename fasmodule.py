@@ -9,7 +9,7 @@ from torch.utils.data import dataloader
 from pytorch_lightning.core.lightning import LightningModule
 import timm
 from utils.loss import *
-from models.models import *
+from models import *
 from torchmetrics import Accuracy
 
 
@@ -30,7 +30,11 @@ class FasModule(LightningModule):
         self.train_opt = main_opt
         self.save_hyperparameters(vars(main_opt))
 
-        self.net = fasmodel(main_opt.backbone, num_classes=2)
+        if self.train_opt.model == 'deeppixel':
+            self.loss_pixel = nn.BCELoss()
+            self.net = DeepPixBis(main_opt.backbone, num_classes=2)
+        else:
+            self.net = fasmodel(main_opt.backbone, num_classes=2)
         self.out_weights = [1]
 
         self.criterion = []
@@ -46,11 +50,22 @@ class FasModule(LightningModule):
     def training_step(self, batch, batch_idx):
         image, label, path = batch
 
-        outputs = self(image)
+        total_loss = 0
+
+        if self.train_opt.model == 'deeppixel':
+            label_map = torch.ones(
+                image[0], 14, 14, dtype=torch.FloatTensor)*abs(label - 0.01).cuda()
+            out_map, outputs = self(image)
+            loss_pixel = self.loss_pixel(out_map, label_map)
+            self.log('loss_pixel', loss_pixel, on_step=False,
+                     on_epoch=True, logger=True)
+            total_loss += loss_pixel
+        else:
+            outputs = self(image)
+
         if len(self.out_weights) == 1:
             outputs = [outputs]
 
-        total_loss = 0
         for loss_name, criteria in self.criterion:
             loss = 0
             for output, weight in zip(outputs, self.out_weights):

@@ -113,6 +113,22 @@ class AsymmetricLossOptimized(nn.Module):
         return _loss
 
 
+class PixWiseLoss(nn.Module):
+    def __init__(self, beta=0.5):
+        super(PixWiseLoss, self).__init__()
+        self.criterion1 = nn.CrossEntropyLoss()
+        self.criterion2 = nn.BCELoss()
+        self.beta = beta
+
+    def foward(self, net_mask, net_label, target_mask, target_label):
+        loss_pixelmap = self.criterion2(net_mask, target_mask)
+        loss_ce = self.criterion1(net_label, target_label)
+
+        loss = self.beta*loss_ce + (1-self.beta)*loss_pixelmap
+
+        return loss
+
+
 if __name__ == '__main__':
 
     in_features = 512
@@ -126,5 +142,5 @@ if __name__ == '__main__':
     # labels should indicate class of each sample, and should be an int, l satisying 0 <= l < out_dim
     input = torch.rand(4, 512, requires_grad=True)
     target = torch.randint(0, 1, (4, 1)).random_(2).type(torch.LongTensor)
-    loss = criterion(x, target)
+    loss = criterion(input, target)
     loss.backward()

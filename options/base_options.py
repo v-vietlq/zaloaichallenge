@@ -17,6 +17,8 @@ class BaseOptions():
         parser.add_argument('--num_labels', type=int, help='number of labels')
         parser.add_argument('--backbone', type=str, default='resnet34',
                             help='choose the backbone for semantic segmentation')
+        parser.add_argument('--model', type=str, default='deeppixel',
+                            help='choose the model for semantic segmentation')
         parser.add_argument('--pretrained', type=str,
                             help='pretrained model path (.ckpt or .pth)')
         parser.add_argument('--num_threads', default=8,
