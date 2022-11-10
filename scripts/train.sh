@@ -1,4 +1,4 @@
-!python train.py \
+python train.py \
 --name zaloai_resnet34 \
 --num_labels 2 \
 --scaled_width 224 \

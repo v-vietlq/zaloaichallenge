@@ -41,6 +41,7 @@ if __name__ == '__main__':
     checkpoint_callback = ModelCheckpoint(
         monitor='val_acc',
         filename='best-{epoch:02d}-{val_acc:.2f}',
+        save_last=True,
         verbose=True,
         mode='max'
     )

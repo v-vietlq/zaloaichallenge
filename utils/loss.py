@@ -7,83 +7,31 @@ from typing import Optional, Sequence
 from torch import Tensor
 
 
-# version 2: user derived grad computation
-class FocalSigmoidLossFuncV2(torch.autograd.Function):
-    '''
-    compute backward directly for better numeric stability
-    '''
-    @staticmethod
-    @amp.custom_fwd(cast_inputs=torch.float32)
-    def forward(ctx, logits, label, alpha, gamma):
-        #  logits = logits.float()
+class AdMSoftmaxLoss(nn.Module):
+    def __init__(self, in_features, out_features, s=30., m=0.4):
+        super(AdMSoftmaxLoss, self).__init__()
+        self.s = s
+        self.m = m
+        self.in_features = in_features
+        self.out_features = out_features
+        self.fc = nn.Linear(self.in_features, self.out_features, bias=False)
 
-        probs = torch.sigmoid(logits)
-        coeff = (label - probs).abs_().pow_(gamma).neg_()
-        log_probs = torch.where(logits >= 0,
-                                F.softplus(logits, -1, 50),
-                                logits - F.softplus(logits, 1, 50))
-        log_1_probs = torch.where(logits >= 0,
-                                  -logits + F.softplus(logits, -1, 50),
-                                  -F.softplus(logits, 1, 50))
-        ce_term1 = log_probs.mul_(label).mul_(alpha)
-        ce_term2 = log_1_probs.mul_(1. - label).mul_(1. - alpha)
-        ce = ce_term1.add_(ce_term2)
-        loss = ce * coeff
+    def forward(self, x, labels):
+        for W in self.fc.parameters():
+            W = F.normalize(W, dim=1)
 
-        ctx.vars = (coeff, probs, ce, label, gamma, alpha)
+        x = F.normalize(x, dim=1)
 
-        return loss
+        wf = self.fc(x)
 
-    @staticmethod
-    @amp.custom_bwd
-    def backward(ctx, grad_output):
-        '''
-        compute gradient of focal loss
-        '''
-        (coeff, probs, ce, label, gamma, alpha) = ctx.vars
-
-        d_coeff = (label - probs).abs_().pow_(gamma - 1.).mul_(gamma)
-        d_coeff.mul_(probs).mul_(1. - probs)
-        d_coeff = torch.where(label < probs, d_coeff.neg(), d_coeff)
-        term1 = d_coeff.mul_(ce)
-
-        d_ce = label * alpha
-        d_ce.sub_(probs.mul_(
-            (label * alpha).mul_(2).add_(1).sub_(label).sub_(alpha)))
-        term2 = d_ce.mul(coeff)
-
-        grads = term1.add_(term2)
-        grads.mul_(grad_output)
-
-        return grads, None, None, None
-
-
-class FocalLossV2(nn.Module):
-
-    def __init__(self,
-                 alpha=0.25,
-                 gamma=2,
-                 reduction='mean'):
-        super(FocalLossV2, self).__init__()
-        self.alpha = alpha
-        self.gamma = gamma
-        self.reduction = reduction
-
-    def forward(self, logits, label):
-        '''
-        Usage is same as nn.BCEWithLogits:
-            >>> criteria = FocalLossV2()
-            >>> logits = torch.randn(8, 19, 384, 384)
-            >>> lbs = torch.randint(0, 2, (8, 19, 384, 384)).float()
-            >>> loss = criteria(logits, lbs)
-        '''
-        loss = FocalSigmoidLossFuncV2.apply(
-            logits, label, self.alpha, self.gamma)
-        if self.reduction == 'mean':
-            loss = loss.mean()
-        if self.reduction == 'sum':
-            loss = loss.sum()
-        return loss
+        numerator = self.s * \
+            (torch.diagonal(wf.transpose(0, 1)[labels]) - self.m)
+        excl = torch.cat([torch.cat((wf[i, :y], wf[i, y+1:])).unsqueeze(0)
+                         for i, y in enumerate(labels)], dim=0)
+        denominator = torch.exp(numerator) + \
+            torch.sum(torch.exp(self.s*excl), dim=1)
+        L = numerator - torch.log(denominator)
+        return -torch.mean(L)
 
 
 class FocalLoss(nn.Module):
@@ -166,10 +114,17 @@ class AsymmetricLossOptimized(nn.Module):
 
 
 if __name__ == '__main__':
-    creteria = FocalLossV2()
-    logits = torch.randn(8, 2, requires_grad=True)
-    print(logits)
-    lbs = torch.randn(8, 2).softmax(dim=1)
-    print(lbs)
-    loss = creteria(logits, lbs)
-    print(loss)
+
+    in_features = 512
+    out_features = 10  # Number of classes
+
+    # Default values recommended by [1]
+    criterion = AdMSoftmaxLoss(in_features, out_features, s=30.0, m=0.4)
+
+    # Forward method works similarly to nn.CrossEntropyLoss
+    # x of shape (batch_size, in_features), labels of shape (batch_size,)
+    # labels should indicate class of each sample, and should be an int, l satisying 0 <= l < out_dim
+    input = torch.rand(4, 512, requires_grad=True)
+    target = torch.randint(0, 1, (4, 1)).random_(2).type(torch.LongTensor)
+    loss = criterion(x, target)
+    loss.backward()

@@ -57,7 +57,7 @@ class TSNPredictor(CelebASpoofDetector):
                             num_classes=self.num_class)
 
         self.net = load_model(
-            self.net, './best-epoch=101-val_acc=0.94.ckpt')
+            self.net, './weights/best-epoch=120-val_acc=0.95.ckpt')
         # checkpoint = torch.load('./ckpt_iter.pth.tar',
         #                         map_location=torch.device('cpu'))
 
