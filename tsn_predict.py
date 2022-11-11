@@ -6,7 +6,7 @@ import torch
 
 # from models import AENet
 
-from models.models import fasmodel
+from models import fasmodel, DeepPixBis
 
 
 from detector import CelebASpoofDetector
@@ -53,11 +53,11 @@ class TSNPredictor(CelebASpoofDetector):
     def __init__(self):
         self.num_class = 2
         # self.net = AENet(num_classes=self.num_class)
-        self.net = fasmodel(encoder_name='resnet34',
-                            num_classes=self.num_class)
+        self.net = DeepPixBis(encoder_name='resnet18',
+                              num_classes=self.num_class)
 
         self.net = load_model(
-            self.net, './weights/best-epoch=120-val_acc=0.95.ckpt')
+            self.net, './weights/deeppixel.ckpt')
         # checkpoint = torch.load('./ckpt_iter.pth.tar',
         #                         map_location=torch.device('cpu'))
 
@@ -84,15 +84,18 @@ class TSNPredictor(CelebASpoofDetector):
         image = image.unsqueeze(0)
         # input_var = data.view(-1, channel, data.size(2), data.size(3))
         with torch.no_grad():
-            rst = self.net(image).detach()
-        return rst.reshape(-1, self.num_class)
+            out_map, rst = self.net(image)
+            rst = rst.detach()
+            out_map = out_map.detach()
+        return rst.reshape(-1, self.num_class), out_map.reshape(14, 14)
 
     def predict(self, images):
         # real_data = []
         # for image in images:
         #     # data = self.preprocess_data(image)
         #     real_data.append(image)
-        rst = self.eval_image(images)
-        rst = torch.nn.functional.softmax(rst, dim=1).cpu().numpy().copy()
+        rst, out_map = self.eval_image(images)
+        rst = torch.nn.functional.softmax(
+            rst, dim=1).cpu().numpy().copy()
         probability = np.array(rst)
-        return probability
+        return probability, np.mean(np.array(out_map))

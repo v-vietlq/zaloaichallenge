@@ -53,13 +53,18 @@ class FasModule(LightningModule):
         total_loss = 0
 
         if self.train_opt.model == 'deeppixel':
-            label_map = torch.ones(
-                image[0], 14, 14, dtype=torch.FloatTensor)*abs(label - 0.01).cuda()
+            map_label = torch.abs(torch.sub(label, 0.01)).view(-1, 1)
+            ones = torch.ones(image.size(0), 196).cuda()
+            label_map = ones * map_label.expand_as(ones)
+            label_map = label_map.view(image.size(0), 14, 14)
             out_map, outputs = self(image)
             loss_pixel = self.loss_pixel(out_map, label_map)
+
+            total_loss += loss_pixel
+
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)
-            total_loss += loss_pixel
+
         else:
             outputs = self(image)
 
@@ -81,7 +86,8 @@ class FasModule(LightningModule):
     def validation_step(self, batch, batch_idx):
         image, label, path = batch
         with torch.no_grad():
-            outputs = self(image)
+            if self.train_opt.model == 'deeppixel':
+                out_map, outputs = self(image)
 
         if len(self.out_weights) == 1:
             # pred = F.sigmoid(outputs)
