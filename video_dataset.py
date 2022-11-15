@@ -5,6 +5,7 @@ from PIL import Image
 from torchvision import transforms
 import torch
 from typing import List, Union, Tuple, Any
+import random
 
 
 class VideoRecord(object):
@@ -195,12 +196,37 @@ class VideoFrameDataset(torch.utils.data.Dataset):
             if the transform "ImglistToTensor" is used
             3) or anything else if a custom transform is used.
         """
-        record: VideoRecord = self.video_list[idx]
+        record0: VideoRecord = self.video_list[idx]
+        if record0.label == None:
+            frame_start_indices: 'np.ndarray[int]' = self._get_start_indices(
+                record0)
+            return self._get(record0, frame_start_indices)
 
-        frame_start_indices: 'np.ndarray[int]' = self._get_start_indices(
-            record)
+        should_get_same_class = random.randint(0, 1)
+        n = self.__len__()
 
-        return self._get(record, frame_start_indices)
+        if should_get_same_class:
+            while True:
+
+                record1: VideoRecord = self.video_list[random.randint(
+                    0, n)]
+                if record0.label == record1.label:
+                    break
+        else:
+            while True:
+                record1: VideoRecord = self.video_list[random.randint(
+                    0, n)]
+                if record0.label != record1.label:
+                    break
+
+        frame_start_indices_0: 'np.ndarray[int]' = self._get_start_indices(
+            record0)
+        frame_start_indices_1: 'np.ndarray[int]' = self._get_start_indices(
+            record1)
+
+        # record: VideoRecord = self.video_list[idx]
+
+        return self._get(record0, frame_start_indices_0), self._get(record1, frame_start_indices_1), torch.from_numpy(np.array([int(record0.label != record1.label)], dtype=np.float32))
 
     def _get(self, record: VideoRecord, frame_start_indices: 'np.ndarray[int]') -> Union[
         Tuple[List[Image.Image], Union[int, List[int]]],

@@ -53,11 +53,11 @@ class TSNPredictor(CelebASpoofDetector):
     def __init__(self):
         self.num_class = 2
         # self.net = AENet(num_classes=self.num_class)
-        self.net = DeepPixBis(encoder_name='resnet18',
+        self.net = DeepPixBis(encoder_name='resnet101',
                               num_classes=self.num_class)
 
         self.net = load_model(
-            self.net, './weights/deeppixel.ckpt')
+            self.net, './weights/last.ckpt')
         # checkpoint = torch.load('./ckpt_iter.pth.tar',
         #                         map_location=torch.device('cpu'))
 

@@ -19,7 +19,7 @@ backbone_filters = {
 
 
 class DeepPixBis(nn.Module):
-    def __init__(self, encoder_name='resnet18', num_classes=2, pretrained=True):
+    def __init__(self, encoder_name='resnet18', num_classes=2, pretrained=True, phase='train'):
         super(DeepPixBis, self).__init__()
         feature_extractor = getattr(
             torchvision.models, encoder_name)(pretrained=True)
@@ -46,6 +46,7 @@ class DeepPixBis(nn.Module):
         self.fc = nn.Linear(self.feat_in[-1], num_classes)
 
         self.global_pool_layer = FastAvgPool2d(flatten=True)
+        self.phase = phase
 
     def forward(self, x):
         batch_size, time_steps, channels, height, width = x.size()
@@ -64,7 +65,7 @@ class DeepPixBis(nn.Module):
         o = o.view((-1, time_steps) + o.size()[1:])
         o = o.mean(dim=1)
 
-        o = self.fc(o)
+        out = self.fc(o)
 
         out_map = self.dec(x3)
         # out_map = self.global_pool_layer(out_map)
@@ -72,7 +73,10 @@ class DeepPixBis(nn.Module):
         out_map = out_map.mean(dim=1)
         out_map = F.sigmoid(out_map)
 
-        return out_map, o
+        if self.phase == 'train':
+            return out_map, out, o
+        else:
+            return out_map, out
 
 
 if __name__ == '__main__':

@@ -48,6 +48,7 @@ class vitfas(nn.Module):
 
         o = o.view((-1, time_steps) + o.size()[1:])
         o = o.mean(dim=1)
+        print(o.shape)
         
         o = self.feature_extractor.forward_head(o)
 
@@ -68,7 +69,7 @@ class vitfas(nn.Module):
 
 if __name__ == '__main__':
     x = torch.rand(4,4,3,224,224)
-    m = fasmodel()
+    m = vitfas()
     y = m(x)
     print(y.shape)
     

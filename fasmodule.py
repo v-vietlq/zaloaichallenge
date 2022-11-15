@@ -32,6 +32,7 @@ class FasModule(LightningModule):
 
         if self.train_opt.model == 'deeppixel':
             self.loss_pixel = nn.BCELoss()
+            self.contrastive_loss = ContrastiveLoss(margin=1.0)
             self.net = DeepPixBis(main_opt.backbone, num_classes=2)
         else:
             self.net = fasmodel(main_opt.backbone, num_classes=2)
@@ -44,29 +45,42 @@ class FasModule(LightningModule):
 
         self.val_acc = Accuracy()
 
-    def forward(self, x):
+    def forward_one(self, x):
         return self.net(x)
 
+    def forward(self, x, y):
+        return self.net(x), self.net(y)
+
     def training_step(self, batch, batch_idx):
-        image, label, path = batch
+        video1, video2, simarity_label = batch
+        image, label, path, = video1
+        image1, label1, path1 = video2
 
         total_loss = 0
 
         if self.train_opt.model == 'deeppixel':
+
+            # gen label for deeppixel
             map_label = torch.abs(torch.sub(label, 0.01)).view(-1, 1)
             ones = torch.ones(image.size(0), 196).cuda()
             label_map = ones * map_label.expand_as(ones)
             label_map = label_map.view(image.size(0), 14, 14)
-            out_map, outputs = self(image)
+
+            # forward model
+            out_map, outputs, out_feat, _, _, out1_feat = self(image, image1)
+
             loss_pixel = self.loss_pixel(out_map, label_map)
 
-            total_loss += loss_pixel
+            loss_contrastive = self.contrastive_loss(
+                out_feat, out1_feat, simarity_label)
+
+            total_loss += loss_pixel + loss_contrastive
 
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)
 
-        else:
-            outputs = self(image)
+            self.log('loss_contrastive', loss_contrastive, on_step=False,
+                     on_epoch=True, logger=True)
 
         if len(self.out_weights) == 1:
             outputs = [outputs]
@@ -88,6 +102,9 @@ class FasModule(LightningModule):
         with torch.no_grad():
             if self.train_opt.model == 'deeppixel':
                 out_map, outputs = self(image)
+
+            else:
+                outputs = self(image)
 
         if len(self.out_weights) == 1:
             # pred = F.sigmoid(outputs)
