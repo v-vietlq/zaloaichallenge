@@ -18,9 +18,9 @@ backbone_filters = {
 }
 
 
-class fasmodel(nn.Module):
+class vitfas(nn.Module):
     def __init__(self, encoder_name='vit_small_patch16_224_dino', num_classes=2):
-        super(fasmodel, self).__init__()
+        super(vitfas, self).__init__()
 
         self.feature_extractor = timm.create_model(model_name= encoder_name, num_classes = num_classes, pretrained=True)
   
