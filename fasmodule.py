@@ -67,14 +67,16 @@ class FasModule(LightningModule):
             label_map = label_map.view(image.size(0), 14, 14)
 
             # forward model
-            out_map, outputs, out_feat, _, _, out1_feat = self(image, image1)
+            o, o1 = self(image, image1)
+            out_map, outputs, out_feat = o
+            _, _, out1_feat = o1
 
             loss_pixel = self.loss_pixel(out_map, label_map)
 
             loss_contrastive = self.contrastive_loss(
                 out_feat, out1_feat, simarity_label)
 
-            total_loss += loss_pixel + loss_contrastive
+            total_loss += loss_pixel + 0.01*loss_contrastive
 
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)
@@ -98,10 +100,13 @@ class FasModule(LightningModule):
         return total_loss
 
     def validation_step(self, batch, batch_idx):
-        image, label, path = batch
+        video1, video2, simarity_label = batch
+        image, label, path, = video1
+        image1, label1, path1 = video2
+        # image, label, path = batch
         with torch.no_grad():
             if self.train_opt.model == 'deeppixel':
-                out_map, outputs = self(image)
+                out_map, outputs, _ = self.forward_one(image)
 
             else:
                 outputs = self(image)

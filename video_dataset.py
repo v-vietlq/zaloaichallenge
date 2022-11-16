@@ -203,7 +203,7 @@ class VideoFrameDataset(torch.utils.data.Dataset):
             return self._get(record0, frame_start_indices)
 
         should_get_same_class = random.randint(0, 1)
-        n = self.__len__()
+        n = self.__len__() - 1
 
         if should_get_same_class:
             while True:
