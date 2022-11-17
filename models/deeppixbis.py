@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 import torchvision
-from .aggregate.avg_pool import FastAvgPool2d, Aggregate
+from aggregate.avg_pool import FastAvgPool2d, Aggregate
 
 backbone_filters = {
     # Resnet
@@ -40,6 +40,7 @@ class DeepPixBis(nn.Module):
 
         self.feat_in = backbone_filters[encoder_name]
 
+
         self.dec = nn.Conv2d(
             self.feat_in[-2], 1, kernel_size=1, stride=1, padding=0)
 
@@ -60,6 +61,7 @@ class DeepPixBis(nn.Module):
             features += [x]
 
         x0, x1, x2, x3, feat = features
+        print(x0.shape, x1.shape, x2.shape, x3.shape)
 
         o = self.global_pool_layer(feat)
         o = o.view((-1, time_steps) + o.size()[1:])

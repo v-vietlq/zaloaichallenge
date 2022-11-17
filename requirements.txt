@@ -6,3 +6,4 @@ Pillow
 pytorch-lightning==1.5.10
 timm
 randaugment
+albumentations

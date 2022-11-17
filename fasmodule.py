@@ -62,6 +62,7 @@ class FasModule(LightningModule):
 
             # gen label for deeppixel
             map_label = torch.abs(torch.sub(label, 0.01)).view(-1, 1)
+
             ones = torch.ones(image.size(0), 196).cuda()
             label_map = ones * map_label.expand_as(ones)
             label_map = label_map.view(image.size(0), 14, 14)
@@ -76,7 +77,7 @@ class FasModule(LightningModule):
             loss_contrastive = self.contrastive_loss(
                 out_feat, out1_feat, simarity_label)
 
-            total_loss += loss_pixel + 0.01*loss_contrastive
+            total_loss += loss_pixel + 0.05*loss_contrastive
 
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)

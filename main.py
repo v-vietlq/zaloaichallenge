@@ -31,7 +31,7 @@ import csv
 from utils.metric import compute_eer
 
 # Folder in which all videos lie in a specific structure
-root = os.path.join(os.getcwd(), 'zaloai/public_test_2/videos')
+root = os.path.join(os.getcwd(), 'zaloai/public_test/videos')
 # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
 annotation_file = os.path.join(
     root.replace('videos', ''), 'annotations.txt')
@@ -89,7 +89,7 @@ def run_test(detector_class, image_iter):
         video_id = sample[2].rsplit('/', 1)[1]+'.mp4'
         outs.append(output_probs)
         labels.append(sample[1])
-        if float(prob[:, 1]) > 0.5 and sample[1] == 0:
+        if (float(prob[:, 1]) > 0.4 and float(prob[:, 1]) < 0.6) or (out_map > 0.4 and out_map < 0.6):
             print(
                 f'video {video_id} label {sample[1]} predict{float(prob[:, 1])} outmap {out_map}')
         result[video_id] = output_probs
@@ -99,7 +99,7 @@ def run_test(detector_class, image_iter):
 
     # print(compute_eer(labels, outs))
     print(result)
-    with open('predict_2.csv', 'w') as csv_file:
+    with open('predict.csv', 'w') as csv_file:
         writer = csv.writer(csv_file)
         writer.writerow(('fname', 'liveness_score'))
         for key, value in result.items():
