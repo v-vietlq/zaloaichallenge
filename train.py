@@ -109,7 +109,8 @@ if __name__ == '__main__':
         A.Resize(height=224, width=224, p=1),
         A.Cutout(num_holes=8, max_h_size=32,
                  max_w_size=32, fill_value=0, p=0.5),
-        ToTensorV2(p=1.0)
+        A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ToTensorV2()
 
     ],
     )
@@ -129,12 +130,13 @@ if __name__ == '__main__':
     # val_annotation_file = os.path.join(
     #     train_root.replace('videos', ''), 'val_annotations.txt')
 
-    val_transform = T.Compose([
+    val_transform = A.Compose([
         # T.RandomResizedCrop((224, 224)),
         # T.RandomRotation(degrees=30.),
         # T.RandomPerspective(distortion_scale=0.4),
-        T.Resize((224, 224)),
-        T.ToTensor(),
+        A.Resize(224, 224, p=1),
+        A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ToTensorV2()
 
 
     ])

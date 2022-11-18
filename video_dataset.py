@@ -6,6 +6,7 @@ from torchvision import transforms
 import torch
 from typing import List, Union, Tuple, Any
 import random
+import cv2
 
 
 class VideoRecord(object):
@@ -129,8 +130,11 @@ class VideoFrameDataset(torch.utils.data.Dataset):
         self._parse_annotationfile()
         self._sanity_check_samples()
 
-    def _load_image(self, directory: str, idx: int) -> Image.Image:
-        return Image.open(os.path.join(directory, self.imagefile_template.format(idx))).convert('RGB')
+    def _load_image(self, directory: str, idx: int):
+        image = cv2.imread(os.path.join(
+            directory, self.imagefile_template.format(idx)))
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image
 
     def _parse_annotationfile(self):
         self.video_list = [VideoRecord(
@@ -269,7 +273,7 @@ class VideoFrameDataset(torch.utils.data.Dataset):
                     frame_index += 1
 
         if self.transform is not None:
-            images = [self.transform(image) for image in images]
+            images = [self.transform(image=image)['image'] for image in images]
 
         return torch.stack(images), record.label, record.path
 
