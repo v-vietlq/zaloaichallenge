@@ -29,6 +29,8 @@ from torchvision import transforms as T
 import torch.utils.data as data
 import csv
 from utils.metric import compute_eer
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 
 # Folder in which all videos lie in a specific structure
 root = os.path.join(os.getcwd(), 'zaloai/public_test/videos')
@@ -37,13 +39,14 @@ annotation_file = os.path.join(
     root.replace('videos', ''), 'annotations.txt')
 
 logging.basicConfig(level=logging.INFO)
-val_transform = T.Compose([
-    T.Resize((224, 224)),
-    T.ToTensor(),
-    # T.Normalize(
-    #     mean=(0.5, 0.5, 0.5),
-    #     std=(0.5, 0.5, 0.5)
-    # ),
+val_transform = A.Compose([
+    # T.RandomResizedCrop((224, 224)),
+    # T.RandomRotation(degrees=30.),
+    # T.RandomPerspective(distortion_scale=0.4),
+    A.Resize(224, 224, p=1),
+    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+    ToTensorV2()
+
 
 ])
 

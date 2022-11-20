@@ -14,6 +14,7 @@ import torch.utils.data as data
 from randaugment import RandAugment
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
+from zaloaidatamodule import ZaloLivenessKfoldDataModule
 
 if __name__ == '__main__':
     train_opt = TrainOptions().parse()
@@ -115,15 +116,15 @@ if __name__ == '__main__':
     ],
     )
 
-    train_dataset = VideoFrameDataset(
-        root_path=train_opt.train_root,
-        annotationfile_path=train_opt.train_list,
-        num_segments=4,
-        frames_per_segment=1,
-        imagefile_template='img_{:05d}.jpg',
-        transform=train_transform,
-        test_mode=False
-    )
+    # train_dataset = VideoFrameDataset(
+    #     root_path=train_opt.train_root,
+    #     annotationfile_path=train_opt.train_list,
+    #     num_segments=4,
+    #     frames_per_segment=1,
+    #     imagefile_template='img_{:05d}.jpg',
+    #     transform=train_transform,
+    #     test_mode=False
+    # )
 
     # val_root = os.path.join(os.getcwd(), 'zaloai/train/videos')
     # # A row for each video sample as: (VIDEO_PATH START_FRAME END_FRAME CLASS_ID)
@@ -141,19 +142,33 @@ if __name__ == '__main__':
 
     ])
 
-    val_dataset = VideoFrameDataset(
-        root_path=train_opt.val_root,
-        annotationfile_path=train_opt.val_list,
-        num_segments=4,
-        frames_per_segment=1,
-        imagefile_template='img_{:05d}.jpg',
-        transform=val_transform,
-        test_mode=True
+    # val_dataset = VideoFrameDataset(
+    #     root_path=train_opt.val_root,
+    #     annotationfile_path=train_opt.val_list,
+    #     num_segments=4,
+    #     frames_per_segment=1,
+    #     imagefile_template='img_{:05d}.jpg',
+    #     transform=val_transform,
+    #     test_mode=True
+    # )
+
+    # train_loader = data.DataLoader(
+    #     train_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=True)
+    # val_loader = data.DataLoader(
+    #     val_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=False)
+
+    # trainer.fit(fas_module, train_loader, val_loader)
+
+for k in range(5):
+    dm = ZaloLivenessKfoldDataModule(
+        train_root=train_opt.train_root,
+        val_root=train_opt.val_root,
+        train_list=train_opt.train_list,
+        val_list=train_opt.val_list,
+        batch_size=train_opt.batch_size,
+        num_threads=train_opt.num_threads,
+        k=k,
+        train_transforms=train_transform,
+        val_transforms=val_transform
     )
-
-    train_loader = data.DataLoader(
-        train_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=True)
-    val_loader = data.DataLoader(
-        val_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=False)
-
-    trainer.fit(fas_module, train_loader, val_loader)
+    trainer.fit(fas_module, dm)
