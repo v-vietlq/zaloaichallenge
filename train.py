@@ -91,6 +91,7 @@ if __name__ == '__main__':
         # Any help or suggestions are appreciated.
         # A.RandomSizedCrop(min_max_height=(224, 224), height=224, width=224, p=0.5),
         #         A.RandomSizedCrop(min_max_height=(300, 1000), height=1000, width=1000, p=0.5),
+        A.Resize(height=224, width=224, p=1),
         A.OneOf([
             A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2,
                                  val_shift_limit=0.2, p=0.9),
@@ -106,7 +107,6 @@ if __name__ == '__main__':
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
         A.Transpose(p=0.5),
-        A.Resize(height=224, width=224, p=1),
         A.Cutout(num_holes=8, max_h_size=32,
                  max_w_size=32, fill_value=0, p=0.5),
         A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
