@@ -77,7 +77,7 @@ class FasModule(LightningModule):
             loss_contrastive = self.contrastive_loss(
                 out_feat, out1_feat, simarity_label)
 
-            total_loss += loss_pixel + 0.05*loss_contrastive
+            total_loss += loss_pixel + 0.01*loss_contrastive
 
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)
