@@ -3,7 +3,8 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 import torchvision
-from .aggregate.avg_pool import FastAvgPool2d, Aggregate
+from aggregate.avg_pool import FastAvgPool2d, Aggregate
+import timm
 
 backbone_filters = {
     # Resnet
@@ -14,29 +15,36 @@ backbone_filters = {
     "resnet152": [64, 256, 512, 1024, 2048],
 
     # MobileNetV2
-    "mobilenet_v2": [16, 24, 32, 96, 1280]
+    "mobilenet_v2": [16, 24, 32, 96, 1280],
+    "hrnet_w18": [64, 128, 256, 512, 1024]
 }
 
 
 class DeepPixBis(nn.Module):
-    def __init__(self, encoder_name='resnet18', num_classes=2, pretrained=True, phase='train'):
+    def __init__(self, encoder_name='hrnet_w18', num_classes=2, pretrained=True, phase='train'):
         super(DeepPixBis, self).__init__()
-        feature_extractor = getattr(
-            torchvision.models, encoder_name)(pretrained=True)
         if encoder_name.startswith('resnet'):
-            self.encoders = [
-                nn.Sequential(feature_extractor.conv1,
-                              feature_extractor.bn1, feature_extractor.relu),
-                nn.Sequential(feature_extractor.maxpool,
-                              feature_extractor.layer1),
-                feature_extractor.layer2,
-                feature_extractor.layer3,
-                feature_extractor.layer4
-            ]
+            # feature_extractor = getattr(
+            #     torchvision.models, encoder_name)(pretrained=True)
+            # self.encoders = [
+            #     nn.Sequential(feature_extractor.conv1,
+            #                   feature_extractor.bn1, feature_extractor.relu),
+            #     nn.Sequential(feature_extractor.maxpool,
+            #                   feature_extractor.layer1),
+            #     feature_extractor.layer2,
+            #     feature_extractor.layer3,
+            #     feature_extractor.layer4
+            # ]
+            self.encoders = timm.create_model(model_name=encoder_name, features_only=True, out_indices=(
+                0, 1, 2, 3, 4), num_classes=num_classes, pretrained=True)
+
+        elif encoder_name.startswith('hrnet'):
+            self.encoders = timm.create_model(model_name=encoder_name, features_only=True, out_indices=(
+                0, 1, 2, 3, 4), num_classes=num_classes, pretrained=True)
         else:
             raise NotImplementedError('backbone should be resnet')
 
-        self.encoders = nn.ModuleList(self.encoders)
+        # self.encoders = nn.ModuleList(self.encoders.modules())
 
         self.feat_in = backbone_filters[encoder_name]
 
@@ -53,13 +61,13 @@ class DeepPixBis(nn.Module):
 
         x = x.view(batch_size*time_steps, channels, height, width)
 
-        features = []
+        # features = []
 
-        for module in self.encoders:
-            x = module(x)
-            features += [x]
+        # for module in self.encoders:
+        #     x = module(x)
+        #     features += [x]
 
-        x0, x1, x2, x3, feat = features
+        x0, x1, x2, x3, feat = self.encoders(x)
 
         o = self.global_pool_layer(feat)
         o = o.view((-1, time_steps) + o.size()[1:])
