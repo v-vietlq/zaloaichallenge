@@ -24,17 +24,17 @@ def calc_acc(pred, target):
 
 class FasModule(LightningModule):
     def __init__(self,
+                 main_opt,
+                 val_opt=None,
                  n_tfms: int = 3,
                  magn: int = 3,
                  n_compositions: int = 4,
-                 n_selected: int = 2,
-                 main_opt=None,
-                 val_opt=None) -> None:
+                 n_selected: int = 2,) -> None:
         super(FasModule, self).__init__()
         if val_opt is None:
             self.test_opt = main_opt
             self.save_hyperparameters(vars(main_opt))
-            self.net = fasmodel(main_opt.backbone, num_classes=2)
+            self.net = DeepPixBis(main_opt.backbone, num_classes=2)
             return
 
         self.train_opt = main_opt
