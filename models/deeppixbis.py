@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 import torchvision
-from aggregate.avg_pool import FastAvgPool2d, Aggregate
+from .aggregate.avg_pool import FastAvgPool2d, Aggregate
 import timm
 
 backbone_filters = {
@@ -21,7 +21,7 @@ backbone_filters = {
 
 
 class DeepPixBis(nn.Module):
-    def __init__(self, encoder_name='hrnet_w18', num_classes=2, pretrained=True, phase='train'):
+    def __init__(self, encoder_name='resnet18', num_classes=2, pretrained=True, phase='train'):
         super(DeepPixBis, self).__init__()
         if encoder_name.startswith('resnet'):
             # feature_extractor = getattr(
@@ -44,7 +44,7 @@ class DeepPixBis(nn.Module):
         else:
             raise NotImplementedError('backbone should be resnet')
 
-        # self.encoders = nn.ModuleList(self.encoders.modules())
+        # self.encoders = nn.ModuleList(self.encoders)
 
         self.feat_in = backbone_filters[encoder_name]
 

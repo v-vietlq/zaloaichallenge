@@ -11,6 +11,10 @@ import timm
 from utils.loss import *
 from models import *
 from torchmetrics import Accuracy
+from typing import Union
+import muar
+from muar.utils import tensor2pil
+from muar.augmentations import BatchRandAugment, MuAugment
 
 
 def calc_acc(pred, target):
@@ -19,7 +23,13 @@ def calc_acc(pred, target):
 
 
 class FasModule(LightningModule):
-    def __init__(self, main_opt, val_opt=None) -> None:
+    def __init__(self,
+                 n_tfms: int = 3,
+                 magn: int = 3,
+                 n_compositions: int = 4,
+                 n_selected: int = 2,
+                 main_opt=None,
+                 val_opt=None) -> None:
         super(FasModule, self).__init__()
         if val_opt is None:
             self.test_opt = main_opt
@@ -28,7 +38,7 @@ class FasModule(LightningModule):
             return
 
         self.train_opt = main_opt
-        self.save_hyperparameters(vars(main_opt))
+        self.save_hyperparameters()
 
         if self.train_opt.model == 'deeppixel':
             self.loss_pixel = nn.BCELoss()
@@ -44,6 +54,10 @@ class FasModule(LightningModule):
                 self.criterion += [(loss_name, FocalLoss())]
 
         self.val_acc = Accuracy()
+        self.n_tfms = n_tfms
+        self.magn = magn
+        self.n_compositions = n_compositions
+        self.n_selected = n_selected
 
     def forward_one(self, x):
         return self.net(x)
@@ -52,9 +66,18 @@ class FasModule(LightningModule):
         return self.net(x), self.net(y)
 
     def training_step(self, batch, batch_idx):
+
         video1, video2, simarity_label = batch
         image, label, path, = video1
         image1, label1, path1 = video2
+
+        mean, std = image.mean((0, 2, 3)), image.std((0, 2, 3))
+        rand_augment = BatchRandAugment(self.n_tfms, self.magn, mean, std)
+        self.mu_transform = MuAugment(
+            rand_augment, self.n_compositions, self.n_selected)
+        self.mu_transform.setup(self)
+        image, label = self.mu_transform(image, label)
+        image1, label1 = self.mu_transform(image1, label1)
 
         total_loss = 0
 
@@ -74,10 +97,13 @@ class FasModule(LightningModule):
 
             loss_pixel = self.loss_pixel(out_map, label_map)
 
+            out_feat = F.normalize(out_feat, dim=1)
+            out1_feat = F.normalize(out1_feat, dim=1)
+
             loss_contrastive = self.contrastive_loss(
                 out_feat, out1_feat, simarity_label)
 
-            total_loss += loss_pixel + 0.01*loss_contrastive
+            total_loss += loss_pixel + loss_contrastive
 
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)

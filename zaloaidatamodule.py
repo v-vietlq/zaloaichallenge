@@ -4,6 +4,7 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import KFold
+from torch.utils.data.dataset import Dataset, Subset
 
 
 class ZaloLivenessDataModule(pl.LightningDataModule):
@@ -101,7 +102,8 @@ class ZaloLivenessKfoldDataModule(pl.LightningDataModule):
 
         train_indexes, val_indexes = all_splits[self.k]
 
-        self.zalo_train, self.zalo_val = self.full_data[train_indexes], self.full_data[val_indexes]
+        self.zalo_train, self.zalo_val = Subset(
+            self.full_data, train_indexes), Subset(self.full_data, val_indexes)
 
     def train_dataloader(self):
         train_loader = DataLoader(
