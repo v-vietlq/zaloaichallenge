@@ -48,7 +48,6 @@ class vitfas(nn.Module):
 
         o = o.view((-1, time_steps) + o.size()[1:])
         o = o.mean(dim=1)
-        print(o.shape)
         
         o = self.feature_extractor.forward_head(o)
 

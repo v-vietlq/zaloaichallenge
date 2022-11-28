@@ -131,9 +131,11 @@ class VideoFrameDataset(torch.utils.data.Dataset):
         self._sanity_check_samples()
 
     def _load_image(self, directory: str, idx: int):
-        image = cv2.imread(os.path.join(
-            directory, self.imagefile_template.format(idx)))
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # image = cv2.imread(os.path.join(
+        #     directory, self.imagefile_template.format(idx)))
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = Image.open(os.path.join(
+            directory, self.imagefile_template.format(idx))).convert('RGB')
         return image
 
     def _parse_annotationfile(self):
@@ -201,7 +203,7 @@ class VideoFrameDataset(torch.utils.data.Dataset):
             3) or anything else if a custom transform is used.
         """
         record0: VideoRecord = self.video_list[idx]
-        if record0.label == None:
+        if record0.label == None or self.test_mode:
             frame_start_indices: 'np.ndarray[int]' = self._get_start_indices(
                 record0)
             return self._get(record0, frame_start_indices)
@@ -273,7 +275,8 @@ class VideoFrameDataset(torch.utils.data.Dataset):
                     frame_index += 1
 
         if self.transform is not None:
-            images = [self.transform(image=image)['image'] for image in images]
+            # images = [self.transform(image=image)['image'] for image in images]
+            images = [self.transform(image) for image in images]
 
         return torch.stack(images), record.label, record.path
 

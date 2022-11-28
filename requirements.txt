@@ -8,3 +8,4 @@ timm
 randaugment
 albumentations
 git+https://github.com/adam-mehdi/MuarAugment.git
+git+https://github.com/ray-project/ray_lightning#ray_lightning

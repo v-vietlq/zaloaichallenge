@@ -15,6 +15,7 @@ from randaugment import RandAugment
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from zaloaidatamodule import ZaloLivenessKfoldDataModule, ZaloLivenessDataModule
+from ray_lightning import RayStrategy
 
 if __name__ == '__main__':
     train_opt = TrainOptions().parse()
@@ -60,11 +61,14 @@ if __name__ == '__main__':
     logging = TensorBoardLogger(
         save_dir=train_opt.save_dir, name=train_opt.name)
 
+    ray = RayStrategy(num_workers=1, num_cpus_per_worker=1, use_gpu=True)
+
     trainer = pl.Trainer(gpus=train_opt.gpus,
                          resume_from_checkpoint=train_opt.resume,
                          accelerator=train_opt.accelerator,
                          logger=logging,
                          max_epochs=train_opt.max_epoch,
+                         plugins=[ray],
                          callbacks=[early_stopping_callback,
                                     checkpoint_callback, lr_monitor]
                          )
@@ -87,32 +91,15 @@ if __name__ == '__main__':
     #     T.ToTensor(),
 
     # ])
-    train_transform = A.Compose([
+    train_transform = T.Compose([
         # RandomSizedCrop not working for some reason. I'll post a thread for this issue soon.
         # Any help or suggestions are appreciated.
         # A.RandomSizedCrop(min_max_height=(224, 224), height=224, width=224, p=0.5),
         #         A.RandomSizedCrop(min_max_height=(300, 1000), height=1000, width=1000, p=0.5),
-        A.Resize(height=224, width=224, p=1),
-        # A.OneOf([
-        #     A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2,
-        #                          val_shift_limit=0.2, p=0.9),
-        #     A.RandomBrightnessContrast(brightness_limit=0.2,
-        #                                contrast_limit=0.2, p=0.9),
-        # ], p=0.9),
-        # A.RandomBrightness(),
-        # A.JpegCompression(quality_lower=85, quality_upper=95, p=0.2),
-        # A.OneOf([
-        #     A.Blur(blur_limit=3, p=1.0),
-        #     A.MedianBlur(blur_limit=3, p=1.0)
-        # ], p=0.1),
-        # A.HorizontalFlip(p=0.5),
-        # A.VerticalFlip(p=0.5),
-        # A.RandomRotate90(p=0.5),
-        # A.Transpose(p=0.5),
-        # A.Cutout(num_holes=8, max_h_size=32,
-        #          max_w_size=32, fill_value=0, p=0.5),
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2()
+        T.Resize((224, 224)),
+        RandAugment(),
+        T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        T.ToTensor()
 
     ],
     )
@@ -132,13 +119,13 @@ if __name__ == '__main__':
     # val_annotation_file = os.path.join(
     #     train_root.replace('videos', ''), 'val_annotations.txt')
 
-    val_transform = A.Compose([
+    val_transform = T.Compose([
         # T.RandomResizedCrop((224, 224)),
         # T.RandomRotation(degrees=30.),
         # T.RandomPerspective(distortion_scale=0.4),
-        A.Resize(224, 224, p=1),
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-        ToTensorV2()
+        T.Resize((224, 224)),
+        T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        T.ToTensor()
 
 
     ])
@@ -159,6 +146,7 @@ if __name__ == '__main__':
     #     val_dataset, batch_size=train_opt.batch_size, num_workers=train_opt.num_threads, shuffle=False)
 
     # trainer.fit(fas_module, train_loader, val_loader)
+
 
 for k in range(5):
     dm = ZaloLivenessKfoldDataModule(

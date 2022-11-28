@@ -4,7 +4,7 @@ python train.py \
 --scaled_width 224 \
 --scaled_height 224 \
 --train_root ../zaloai/train/videos \
---train_list ../zaloai/train/train_annotations.txt \
+--train_list ../zaloai/train/annotations.txt \
 --val_root ../zaloai/train/videos \
 --val_list ../zaloai/train/val_annotations.txt \
 --backbone resnet18 \
@@ -14,7 +14,7 @@ python train.py \
 --rotate 20 \
 --color_aug_ratio 0.3 \
 --save_dir checkpoints \
---max_epoch 200 \
+--max_epoch 500 \
 --optimizer adamw \
 --weight_decay 0.00005 \
 --lr 1e-4 \

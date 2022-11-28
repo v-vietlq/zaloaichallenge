@@ -58,6 +58,11 @@ class FasModule(LightningModule):
         self.magn = magn
         self.n_compositions = n_compositions
         self.n_selected = n_selected
+        mean = torch.Tensor([0.485, 0.456, 0.406])
+        std = torch.Tensor([0.229, 0.224, 0.225])
+        rand_augment = BatchRandAugment(self.n_tfms, self.magn, mean, std)
+        self.mu_transform = MuAugment(
+            rand_augment, self.n_compositions, self.n_selected)
 
     def forward_one(self, x):
         return self.net(x)
@@ -70,14 +75,12 @@ class FasModule(LightningModule):
         video1, video2, simarity_label = batch
         image, label, path, = video1
         image1, label1, path1 = video2
-
-        mean, std = image.mean((0, 2, 3)), image.std((0, 2, 3))
-        rand_augment = BatchRandAugment(self.n_tfms, self.magn, mean, std)
-        self.mu_transform = MuAugment(
-            rand_augment, self.n_compositions, self.n_selected)
+        batch_size, time_steps, channels, height, width = image.size()
         self.mu_transform.setup(self)
-        image, label = self.mu_transform(image, label)
-        image1, label1 = self.mu_transform(image1, label1)
+        image, label = self.mu_transform((image, label))
+        image1, label1 = self.mu_transform((image1, label1))
+
+        # simarity_label = (label != label1).type(torch.cuda.LongTensor)
 
         total_loss = 0
 
@@ -97,19 +100,19 @@ class FasModule(LightningModule):
 
             loss_pixel = self.loss_pixel(out_map, label_map)
 
-            out_feat = F.normalize(out_feat, dim=1)
-            out1_feat = F.normalize(out1_feat, dim=1)
+            # out_feat = F.normalize(out_feat, dim=1)
+            # out1_feat = F.normalize(out1_feat, dim=1)
 
-            loss_contrastive = self.contrastive_loss(
-                out_feat, out1_feat, simarity_label)
+            # loss_contrastive = self.contrastive_loss(
+            #     out_feat, out1_feat, simarity_label)
 
-            total_loss += loss_pixel + loss_contrastive
+            total_loss += loss_pixel  # + loss_contrastive
 
             self.log('loss_pixel', loss_pixel, on_step=False,
                      on_epoch=True, logger=True)
 
-            self.log('loss_contrastive', loss_contrastive, on_step=False,
-                     on_epoch=True, logger=True)
+            # self.log('loss_contrastive', loss_contrastive, on_step=False,
+            #          on_epoch=True, logger=True)
 
         if len(self.out_weights) == 1:
             outputs = [outputs]

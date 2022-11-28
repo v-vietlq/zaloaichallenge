@@ -39,15 +39,20 @@ annotation_file = os.path.join(
     root.replace('videos', ''), 'annotations.txt')
 
 logging.basicConfig(level=logging.INFO)
-val_transform = A.Compose([
-    # T.RandomResizedCrop((224, 224)),
-    # T.RandomRotation(degrees=30.),
-    # T.RandomPerspective(distortion_scale=0.4),
-    A.Resize(224, 224, p=1),
-    A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
-    ToTensorV2()
+# val_transform = A.Compose([
+#     # T.RandomResizedCrop((224, 224)),
+#     # T.RandomRotation(degrees=30.),
+#     # T.RandomPerspective(distortion_scale=0.4),
+#     A.Resize(224, 224, p=1),
+#     A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+#     ToTensorV2()
 
 
+# ])
+
+val_transform = T.Compose([
+    T.Resize((224, 224)),
+    T.ToTensor()
 ])
 
 dataset = VideoFrameDataset(
@@ -93,9 +98,12 @@ def run_test(detector_class, image_iter):
         video_id = sample[2].rsplit('/', 1)[1]+'.mp4'
         outs.append(output_probs)
         labels.append(sample[1])
-        # if (float(prob[:, 1]) > 0.4 and float(prob[:, 1]) < 0.6):
+        # if (output_probs > 0.4 and output_probs < 0.6):
+        #         output_probs = float(prob[:, 1])
+
+        # if (output_probs > 0.4 and output_probs < 0.6):
         print(
-            f'video {video_id} label {sample[1]} predict{float(prob[:, 1])} outmap {out_map}')
+                    f'video {video_id} label {sample[1]} predict{float(prob[:, 1])} outmap {out_map}')
         result[video_id] = output_probs
         # break
         # if i == 5:

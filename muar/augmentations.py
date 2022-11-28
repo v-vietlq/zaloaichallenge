@@ -243,10 +243,17 @@ class MuAugment():
                 self.C, BS, device=self.device, dtype=torch.long)
 
         for c in range(self.C):
+            xb = xb.view(-1, N_CHANNELS, HEIGHT, WIDTH)
             xbt, ybt = self.transform(xb, yb)
+            xbt = xbt.view(BS, TIMESTEPS, N_CHANNELS, HEIGHT, WIDTH)
             C_images[c], C_targets[c] = xbt, ybt
 
-        preds = [self.model(images) for images in C_images]
+        preds = []
+        for images in C_images:
+            _, out, _ = self.model.forward_one(images)
+            preds.append(out)
+
+        # preds = [self.model.forward_one(images) for images in C_images]
 
         loss_tensor = torch.stack([self.loss(pred, C_targets[i])
                                   for i, pred in enumerate(preds)])
@@ -254,7 +261,7 @@ class MuAugment():
         S_idxs = loss_tensor.topk(self.S, dim=0).indices
 
         S_images = C_images[S_idxs, range(BS)]
-        S_images = S_images.view(-1, N_CHANNELS, HEIGHT, WIDTH)
+        S_images = S_images.view(-1, TIMESTEPS, N_CHANNELS, HEIGHT, WIDTH)
 
         S_targets = C_targets[S_idxs, range(BS)]
         S_targets = S_targets.view(-1,

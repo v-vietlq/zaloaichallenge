@@ -3,7 +3,7 @@ from video_dataset import VideoFrameDataset
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.utils.data import Dataset, DataLoader
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from torch.utils.data.dataset import Dataset, Subset
 
 
@@ -96,7 +96,7 @@ class ZaloLivenessKfoldDataModule(pl.LightningDataModule):
             transform=self.train_transforms,
             test_mode=False
         )
-        kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
         all_splits = [k for k in kf.split(self.full_data)]
 
