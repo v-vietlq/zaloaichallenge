@@ -40,7 +40,8 @@ def write_predict_file(file_name='./result/jupyter_submission.csv', result=None,
 def run_test(data_path='./data', model=None):
     all_predicted_time = {}
     all_result = {}
-    test_cases = sorted(os.listdir(data_path))
+    test_cases = sorted(os.listdir(data_path),
+                        key=lambda x: int(x.replace('.mp4', '')))
     for file_name in test_cases:
         t1 = time.time()
         input_ = preprocess_video(data_path, file_name, device)
